@@ -1,0 +1,32 @@
+país (CÓDIGO: not null PK, nome: stringNotNull)
+vinho (CHAVE: not null PK, nome: stringNotNull, preço: float not null)
+preço refeferences relatório
+revendedor (CHAVE: not null PK, nome: NotNull, telefone: int not null)
+relatório (dia: date not null, preço: float not null)
+
+####
+
+create table país (
+codigo int not null,
+nome varchar(40) not null,
+primary key (codigo)
+);
+
+relatório (
+dia date not null,
+preço float not null
+);
+
+create table vinho (
+chave int not null,
+nome varchar(40) not null,
+preco float not null,
+primary key (chave),
+foreing key (preco) references relatório(preco)
+);
+
+create table revendedor (
+chave int not null,
+nome varchar(40) not null,
+telefone varchar(20) not null
+);
