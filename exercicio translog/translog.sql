@@ -152,3 +152,63 @@ FROM
 FROM 
     Fato_Entregas;
 
+-- Preenchendo Dim_Cliente com SCD Tipo 2
+INSERT INTO Dim_Cliente (cliente_id, nome, endereco, cidade, estado, data_inicio, data_fim, ativo)
+SELECT DISTINCT 
+    cliente_id, 
+    nome, 
+    endereco, 
+    cidade, 
+    estado, 
+    CURRENT_DATE AS data_inicio,
+    NULL AS data_fim,
+    TRUE AS ativo
+FROM Clientes;
+
+-- Preenchendo Dim_Centro com SCD Tipo 2
+INSERT INTO Dim_Centro (centro_id, nome, endereco, cidade, estado, data_inicio, data_fim, ativo)
+SELECT DISTINCT 
+    centro_id, 
+    nome, 
+    endereco, 
+    cidade, 
+    estado, 
+    CURRENT_DATE AS data_inicio,
+    NULL AS data_fim,
+    TRUE AS ativo
+FROM Centros;
+
+-- Preenchendo Dim_Tempo com base nos dados de Pedidos e Entregas
+INSERT INTO Dim_Tempo (data, ano, mes, dia, trimestre, semestre)
+SELECT DISTINCT 
+    data_pedido AS data,
+    EXTRACT(YEAR FROM data_pedido) AS ano,
+    EXTRACT(MONTH FROM data_pedido) AS mes,
+    EXTRACT(DAY FROM data_pedido) AS dia,
+    CEIL(EXTRACT(MONTH FROM data_pedido) / 3.0) AS trimestre,
+    CASE 
+        WHEN EXTRACT(MONTH FROM data_pedido) <= 6 THEN 1
+        ELSE 2
+    END AS semestre
+FROM Pedidos;
+
+-- Preenchendo Fato_Entregas
+INSERT INTO Fato_Entregas (cliente_sk, centro_saida_sk, centro_destino_sk, tempo_sk_saida, tempo_sk_chegada, quantidade, quilometragem, valor_total, tempo_total)
+SELECT 
+    dc.cliente_sk,
+    dcs.centro_sk AS centro_saida_sk,
+    dcd.centro_sk AS centro_destino_sk,
+    ts.tempo_sk AS tempo_sk_saida,
+    tc.tempo_sk AS tempo_sk_chegada,
+    p.quantidade,
+    e.quilometragem,
+    p.valor_total,
+    DATEDIFF(day, e.data_saida, e.data_chegada) AS tempo_total
+FROM Pedidos p
+JOIN Dim_Cliente dc ON dc.cliente_id = p.cliente_id
+JOIN Dim_Centro dcs ON dcs.centro_id = p.centro_saida_id
+JOIN Dim_Centro dcd ON dcd.centro_id = p.centro_destino_id
+JOIN Entregas e ON e.pedido_id = p.pedido_id
+JOIN Dim_Tempo ts ON ts.data = e.data_saida
+JOIN Dim_Tempo tc ON tc.data = e.data_chegada;
+
